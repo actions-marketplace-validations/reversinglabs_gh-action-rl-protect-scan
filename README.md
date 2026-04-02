@@ -14,22 +14,33 @@ To provide a shift-left solution for software producers who work with third-part
 
 ## Requirements
 
-1. **A valid token for your Spectra Assure Community or Portal user account**. Community tokens have the prefix `rlcmm`, and Portal tokens have the prefix `rls3c`. The token is required for authenticating to the Spectra Assure APIs. To obtain the token, follow the instructions in the [Spectra Assure Community](https://docs.secure.software/community/api/#get-started-with-the-community-api) or the [Spectra Assure Portal](https://docs.secure.software/api/generate-api-token) documentation depending on the account you want to use. It is recommended to define the token as a secret on the level of your GitHub organization or repository.
+**A valid token for your Spectra Assure Community or Portal user account**.
+
+ Community tokens have the prefix `rlcmm`, and Portal tokens have the prefix `rls3c`. The token is required for authenticating to the Spectra Assure APIs. To obtain the token, follow the instructions in the [Spectra Assure Community](https://docs.secure.software/community/api/#get-started-with-the-community-api) or the [Spectra Assure Portal](https://docs.secure.software/api/generate-api-token) documentation depending on the account you want to use.
+
+## Environment variables
+
+This action requires the rl-token license data to be passed via the environment using a environment variable.
+
+| Environment variable | Mandatory | 	Description |
+| --                   | --        | --            |
+| RL_TOKEN	| **yes**  | The token for authenticating to the Spectra Assure Community or the Spectra Assure Portal account. <br>Community tokens have the prefix `rlcmm`, and Portal tokens have the prefix `rls3c`.  |
+
+ReversingLabs **strongly** recommends following best security practices and defining these secrets on the level of your GitHub organization or repository.
 
 ## Input parameters
 
 | Name           | Required | Type     | Description |
 | --             | --       | --       | --          |
-| scan-path      | yes      | `string` | Path to a package manifest file that should be checked. |
-| scan-profile   | no       | `string` | Name of a pre-configured profile or the path to a file that contains a custom rl-profile configuration. Pre-configured profile names are: `minimum`, `baseline`, `hardened`. If this parameter is not specified, `hardened` profile is used by default for Community accounts. For Enterprise (Portal) accounts, an existing profile is imported from the Portal. |
-| rl-token       | yes      | `string` | The token for authenticating to the Spectra Assure Community or the Spectra Assure Portal account. Community tokens have the prefix `rlcmm`, and Portal tokens have the prefix `rls3c`. |
-| rl-server      | depends  | `string` | Applies only for Portal accounts. Name of the Spectra Assure Portal instance to connect to (example: my.secure.software/organization). |
-| rl-org         | depends  | `string` | Applies only for Portal accounts. Name of the Spectra Assure Portal organization. The organization must exist on the Portal instance specified with `rl-server`. The user account authenticated with the token must be a member of the specified organization and have the appropriate permissions. Organization names are case-sensitive. |
-| rl-group       | no       | `string` | Applies only for Portal accounts. Name of the Spectra Assure Portal group. The group must exist in the Portal organization specified with `rl-org`. Group names are case-sensitive. |
-| check-deps     | no       | `string` | Check for dependencies of the specified type. Multiple types can be specified as comma-separated values. If using this parameter, at least one of the following values is required: `release`, `develop`. Values `transitive` and `optional` are not required, but if you want to specify them, one of the required values must be present in the command. |
-| transitive-depth | no     | `int`    | Specifies how many levels deep to scan transitive dependencies, as an integer value. This parameter applies only if `check-deps=transitive` is set. |
+| scan-path      | **yes**      | `string` | Path to a package manifest file that should be checked. The current supported types of manifest files can be found at: [package-manifest-coverage](https://docs.secure.software/concepts/package-manifest-coverage). |
+| scan-profile   | no       | `string` | Name of a pre-configured profile or the path to a file that contains a custom rl-profile configuration. <br>Pre-configured profile names are: `minimum`, `baseline`, `hardened`. <br>If this parameter is not specified, `hardened` profile is used by default for Community accounts. <br>For Enterprise (Portal) accounts, an existing profile is imported from the Portal. |
+| rl-server      | *depends*  | `string` | Applies only for Portal accounts. Name of the Spectra Assure Portal instance to connect to (example: my.secure.software/organization). |
+| rl-org         | *depends*  | `string` | Applies only for Portal accounts. Name of the Spectra Assure Portal organization. The organization must exist on the Portal instance specified with `rl-server`. <br>The user account authenticated with the token must be a member of the specified organization and have the appropriate permissions. Organization names are case-sensitive. |
+| rl-group       | no       | `string` | Applies only for Portal accounts. Name of the Spectra Assure Portal group. <br>The group must exist in the Portal organization specified with `rl-org`. Group names are case-sensitive. |
+| check-deps     | no       | `string` | Default: `release`. Check for dependencies of the specified type. Multiple types can be specified as comma-separated values. <br>If using this parameter, at least one of the following values is required: `release`, `develop`. <br>Values `transitive` and `optional` are not required, but if you want to specify them, one of the required values must be present in the command. |
+| transitive-depth | no     | `int`    | Specifies how many levels deep to scan transitive dependencies, as an integer value. This parameter applies only if `check-deps=transitive` is set. It defaults to `1` if not specified. |
 | report         | no       | `string` | Path and filename for exporting the scan results as an `rl-protect.json` report. |
-| verbose        | no       | `bool`   | Increase script verbosity when running the action. Default: `false` |
+| verbose        | no       | `bool`   | Default: `false`. Increase script verbosity when running the action. |
 | log-file       | no       | `string` | Path to a log file (will be created if it doesn't exist). Logs are kept in the CEF format. |
 | log-level      | no       | `string` | Specifies the logging level as one of the following values: `pass`, `warning`, `fail`. The default value is `fail` (only failed events are logged). |
 | log-label      | no       | `string` | A custom label to identify the logging source in SIEM (maximum 511 characters). |
@@ -39,6 +50,8 @@ To provide a shift-left solution for software producers who work with third-part
 | proxy-password | no       | `string` | If the proxy requires authentication, use this parameter to provide the password. Must be used together with `proxy-user`. |
 
 **For more details on all supported parameters, consult the [official rl-protect documentation](https://docs.secure.software/community/tools/rl-protect).**
+
+
 
 ## Output
 
