@@ -19,6 +19,7 @@ validate_inputs()
 
     # bool: true or false (empty is also accepted for optional inputs)
     validate_input "verbose"          "${VERBOSE}"          '^(true|false)$'
+    validate_input "concise"          "${CONCISE}"          '^(true|false)$'
 
     # path: alphanumeric plus / . _ - (empty accepted for optional inputs)
     validate_input "scan-path"        "${SCAN_PATH}"        '^[a-zA-Z0-9_.\/\-]+$'
@@ -168,6 +169,7 @@ Params:
     PROXY_USER:       ${PROXY_USER}
     CA_PATH:          ${CA_PATH}
 
+    CONCISE:          ${CONCISE}
     VERBOSE:          ${VERBOSE}
 !
 }
@@ -234,9 +236,13 @@ run_scan()
             Params+=( --transitive-depth="${TRANSITIVE_DEPTH}" )
         fi
     fi
+    if [ "${CONCISE}" == "true" ]
+    then
+        Params+=( --concise )
+    fi
+
     # ------------------------------------
     # always
-    Params+=( --concise )
     Params+=( --fail-only )
     Params+=( --no-tracking )
     Params+=( --no-color )
@@ -276,7 +282,7 @@ run_scan()
     then
         echo "RESULT: ${RESULT}"
         echo "Stderr:"
-        cat 2
+        cat 2 # on error or fail show stderr also
     fi
 
     # use the RESULT

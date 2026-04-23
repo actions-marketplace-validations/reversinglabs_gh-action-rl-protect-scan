@@ -41,6 +41,7 @@ ReversingLabs **strongly** recommends following best security practices and defi
 | transitive-depth | no     | `int`    | Specifies how many levels deep to scan transitive dependencies, as an integer value. This parameter applies only if `check-deps=transitive` is set. It defaults to `1` if not specified. |
 | report         | no       | `string` | Path and filename for exporting the scan results as an `rl-protect.json` report. |
 | verbose        | no       | `bool`   | Default: `false`. Increase script verbosity when running the action. |
+| concise        | no       | `bool`   | Default: `false`. Do not show scan details just summarize the final result. |
 | log-file       | no       | `string` | Path to a log file (will be created if it doesn't exist). Logs are kept in the CEF format. |
 | log-level      | no       | `string` | Specifies the logging level as one of the following values: `pass`, `warning`, `fail`. The default value is `fail` (only failed events are logged). |
 | log-label      | no       | `string` | A custom label to identify the logging source in SIEM (maximum 511 characters). |

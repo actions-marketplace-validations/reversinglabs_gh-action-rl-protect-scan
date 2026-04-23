@@ -94,6 +94,11 @@ inputs:
     default: ""
     type: string
   # boolean options
+  concise:
+    description: 'Only report the final outcome and skip all details. Default: false'
+    required: false
+    default: false
+    type: bool
   verbose:
     description: 'Increase script verbosity when running the action. Default: false'
     required: false
@@ -144,6 +149,7 @@ runs:
         PROXY_USER: ${{ inputs.proxy-user }}
         PROXY_PASSWORD: ${{ inputs.proxy-password }}
         CA_PATH: ${{ inputs.ca-path }}
+        CONCISE: ${{ inputs.concise }}
         VERBOSE: ${{ inputs.verbose }}
 
     # -------------------------------------
