@@ -52,6 +52,23 @@ ReversingLabs **strongly** recommends following best security practices and defi
 
 **For more details on all supported parameters, consult the [official rl-protect documentation](https://docs.secure.software/community/tools/rl-protect).**
 
+## PR comment parameters
+
+These parameters control the optional PR comment posted by the action.
+All are ignored unless `post-pr-comment` is `true`.
+
+| Name                    | Required | Type     | Description |
+| --                      | --       | --       | --          |
+| post-pr-comment         | no       | `bool`   | Default: `false`. Post scan results as a comment on the pull request. Requires `github-token`. Only runs when the workflow is triggered by a pull request event. |
+| github-token            | no       | `string` | GitHub token used to post the PR comment. Pass `secrets.GITHUB_TOKEN`. Required when `post-pr-comment` is `true`. The calling workflow must have `pull-requests: write` permission. |
+| comment-template        | no       | `string` | Preset combination of display options: `concise`, `expanded`, or `verbose`. See [PR comment templates](#pr-comment-templates) for details. Individual `comment-*` inputs override the template when set. |
+| comment-level           | no       | `string` | Default: `fail`. Controls which packages appear in the PR comment: `fail` shows only rejected packages, `warn` adds packages with warnings. Scan errors are always shown. The count of passed packages is always included in the summary line. Overrides `comment-template` when set. |
+| comment-assessment      | no       | `string` | Assessment display style: `simplified` groups non-passing checks into a callout block, `table` shows all checks in a table, `off` hides the assessment section. Overrides `comment-template` when set. |
+| comment-vulnerabilities | no       | `bool`   | Default: `true`. Show the CVE vulnerability table in the PR comment. |
+| comment-license         | no       | `bool`   | Default: `false`. Show the package license in the PR comment. |
+| comment-policy          | no       | `bool`   | Default: `false`. Show the policy violations table in the PR comment. |
+| comment-overrides       | no       | `bool`   | Default: `false`. Show override details on assessments and policy violations in the PR comment. |
+
 
 
 ## Output
@@ -110,8 +127,6 @@ jobs:
           scan-profile: 'baseline'
           report: 'my-report.json'
           check-deps: 'develop,release'
-          log-file: 'my-log-file.txt'
-          log-level: 'pass'
           verbose: true
 
       # ---------------------------------------
@@ -122,4 +137,119 @@ jobs:
             ls -la
             exit 0
     # build job
+```
+
+## PR comment templates
+
+The `comment-template` input selects a preset combination of display options for the PR comment. Individual `comment-*` inputs always take precedence over the template when explicitly set.
+
+| Template | Packages shown | Assessment style | Vulnerabilities | Policy |
+|----------|---------------|-----------------|-----------------|--------|
+| `concise` | Status summary + package summary table | off | no | no |
+| `expanded` | Rejected packages | simplified | yes, with license | no |
+| `verbose` | Rejected + warnings | table | yes | yes |
+
+When no template is set the defaults match `expanded`: rejected packages only, simplified assessment, vulnerabilities shown, policy hidden.
+
+### concise — status summary with package table
+
+Posts a status line, package count, and a one-row-per-package summary table showing status and top finding. No per-package detail sections. Useful in high-traffic repositories where comment noise is a concern.
+
+```yaml
+      - name: gh-action-rl-protect-scan
+        uses: reversinglabs/gh-action-rl-protect-scan@v1
+        env:
+          RL_TOKEN: ${{ secrets.RL_TOKEN }}
+        with:
+          scan-path: 'package.json'
+          report: 'rl-protect.report.json'
+          post-pr-comment: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-template: 'concise'
+```
+
+### expanded — rejected packages
+
+Shows full per-package detail for rejected packages.
+This is the recommended default for most teams.
+
+```yaml
+      - name: gh-action-rl-protect-scan
+        uses: reversinglabs/gh-action-rl-protect-scan@v1
+        env:
+          RL_TOKEN: ${{ secrets.RL_TOKEN }}
+        with:
+          scan-path: 'package.json'
+          report: 'rl-protect.report.json'
+          post-pr-comment: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-template: 'expanded'
+```
+
+### verbose — full audit detail
+
+Shows rejected and warning packages, uses the full assessment table, and includes policy violations and override audit trails.
+
+```yaml
+      - name: gh-action-rl-protect-scan
+        uses: reversinglabs/gh-action-rl-protect-scan@v1
+        env:
+          RL_TOKEN: ${{ secrets.RL_TOKEN }}
+        with:
+          scan-path: 'package.json'
+          report: 'rl-protect.report.json'
+          post-pr-comment: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-template: 'verbose'
+```
+
+### Overriding template settings
+
+Individual `comment-*` inputs override the template. For example, to use `expanded` but suppress the vulnerability table:
+
+```yaml
+          comment-template: 'expanded'
+          comment-vulnerabilities: false
+```
+
+## Posting scan results as a PR comment
+
+To post scan results as a comment on the pull request, enable `post-pr-comment` and pass the GitHub token.
+The calling workflow must have `pull-requests: write` permission.
+If a previous comment from the same scan already exists on the PR, it will be updated rather than duplicated.
+
+```yaml
+name: RL_PROTECT_JOB
+
+# Triggers on pull requests targeting the main branch
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # Scan dependencies before the build job
+  check_deps:
+    runs-on: ubuntu-latest
+
+    # Required to post and update PR comments
+    permissions:
+      pull-requests: write
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+
+      # ---------------------------------------
+      - name: gh-action-rl-protect-scan
+        uses: reversinglabs/gh-action-rl-protect-scan@v1
+        id: rl-protect
+        env: # pass env var secrets
+          RL_TOKEN: ${{ secrets.RL_TOKEN }}
+        with: # pass ordinary params
+          scan-path: 'requirements.txt'
+          report: 'rl-protect.report.json'
+          post-pr-comment: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-assessment: 'simplified'
+          comment-level: 'fail'
 ```
