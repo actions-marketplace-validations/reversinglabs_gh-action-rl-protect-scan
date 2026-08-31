@@ -31,6 +31,44 @@ inputs:
     required: false
     default: ''
     type: string
+  # artifact selection options
+  # selects a specific artifact for a target platform; currently PyPI only
+  # target-python is required to enable artifact selection
+  target-python:
+    description: 'Target Python version, e.g. 3.12 or 312. Required to enable artifact selection.'
+    required: false
+    default: ""
+    type: string
+  target-os:
+    description: 'Target OS: linux, macos, windows. Optionally :version as a macOS deployment-target floor (e.g. macos:12.0). Must be used together with target-arch.'
+    required: false
+    default: ""
+    type: string
+  target-arch:
+    description: 'Target CPU architecture: x86_64, x86, arm64. Must be used together with target-os.'
+    required: false
+    default: ""
+    type: string
+  target-libc:
+    description: 'Target Linux libc: glibc, musl, none. Optionally :version as a floor (e.g. glibc:2.34). Requires target-os and target-arch.'
+    required: false
+    default: ""
+    type: string
+  target-platform:
+    description: 'CSV list of platform tags (e.g. manylinux_2_28_x86_64) or presets (linux-x86_64, linux-musl-aarch64, macos-arm64, windows-x64).'
+    required: false
+    default: ""
+    type: string
+  target-implementation:
+    description: 'Target Python interpreter: cp, pp, jy, ip, py. Default: cp.'
+    required: false
+    default: ""
+    type: string
+  target-abi:
+    description: 'CSV list of target ABI tags, e.g. cp312,abi3,none.'
+    required: false
+    default: ""
+    type: string
   # logging options
   log-file:
     description: 'Path to a CEF log file'
@@ -94,8 +132,59 @@ inputs:
     default: ""
     type: string
   # boolean options
+  concise:
+    description: 'Only report the final outcome and skip all details. Default: false'
+    required: false
+    default: false
+    type: bool
   verbose:
     description: 'Increase script verbosity when running the action. Default: false'
+    required: false
+    default: false
+    type: bool
+  # pr comment options
+  post-pr-comment:
+    description: 'Post scan results as a comment on the pull request. Requires github-token. Default: false'
+    required: false
+    default: false
+    type: bool
+  github-token:
+    description: 'GitHub token used to post the PR comment. Pass secrets.GITHUB_TOKEN. Required when post-pr-comment is true.'
+    required: false
+    default: ""
+    type: string
+  comment-template:
+    description: 'PR comment template. concise=status summary only, expanded=rejected+warnings, verbose=full detail with policy. Individual comment-* inputs override the template.'
+    required: false
+    default: ""
+    type: string
+  comment-level:
+    description: 'Minimum finding level in the PR comment: fail, warn, pass. Overrides comment-template when set.'
+    required: false
+    default: ""
+    type: string
+  comment-assessment:
+    description: 'Assessment display style in the PR comment: table, simplified, off. Overrides comment-template when set.'
+    required: false
+    default: ""
+    type: string
+  comment-vulnerabilities:
+    description: 'Show the CVE vulnerability table in the PR comment. Default: true'
+    required: false
+    default: true
+    type: bool
+  comment-license:
+    description: 'Show the package license in the PR comment. Default: false'
+    required: false
+    default: false
+    type: bool
+  comment-policy:
+    description: 'Show the policy violations table in the PR comment. Default: false'
+    required: false
+    default: false
+    type: bool
+  comment-overrides:
+    description: 'Show override details on assessments and policy violations in the PR comment. Default: false'
     required: false
     default: false
     type: bool
@@ -116,7 +205,7 @@ runs:
     # -------------------------------------
     # install python
     - name: Install Python
-      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
         python-version: '3.14'
 
@@ -133,6 +222,13 @@ runs:
         CHECK_DEPS: ${{ inputs.check-deps }}
         TRANSITIVE_DEPTH: ${{ inputs.transitive-depth }}
         REPORT: ${{ inputs.report }}
+        TARGET_PYTHON: ${{ inputs.target-python }}
+        TARGET_OS: ${{ inputs.target-os }}
+        TARGET_ARCH: ${{ inputs.target-arch }}
+        TARGET_LIBC: ${{ inputs.target-libc }}
+        TARGET_PLATFORM: ${{ inputs.target-platform }}
+        TARGET_IMPLEMENTATION: ${{ inputs.target-implementation }}
+        TARGET_ABI: ${{ inputs.target-abi }}
         LOG_FILE: ${{ inputs.log-file }}
         LOG_LEVEL: ${{ inputs.log-level }}
         LOG_LABEL: ${{ inputs.log-label }}
@@ -144,7 +240,30 @@ runs:
         PROXY_USER: ${{ inputs.proxy-user }}
         PROXY_PASSWORD: ${{ inputs.proxy-password }}
         CA_PATH: ${{ inputs.ca-path }}
+        CONCISE: ${{ inputs.concise }}
         VERBOSE: ${{ inputs.verbose }}
+
+    # -------------------------------------
+    # Post scan results as a PR comment
+    - name: Post PR comment
+      if: always() && inputs.post-pr-comment == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        SCAN_STATUS: ${{ steps.rl-protect.outputs.status }}
+        SCAN_DESCRIPTION: ${{ steps.rl-protect.outputs.description }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
+        SCAN_PATH: ${{ inputs.scan-path }}
+        REPORT: ${{ inputs.report }}
+        COMMENT_TEMPLATE: ${{ inputs.comment-template }}
+        COMMENT_LEVEL: ${{ inputs.comment-level }}
+        COMMENT_ASSESSMENT: ${{ inputs.comment-assessment }}
+        COMMENT_VULNERABILITIES: ${{ inputs.comment-vulnerabilities }}
+        COMMENT_LICENSE: ${{ inputs.comment-license }}
+        COMMENT_POLICY: ${{ inputs.comment-policy }}
+        COMMENT_OVERRIDES: ${{ inputs.comment-overrides }}
+      run: python3 ${{ github.action_path }}/post-pr-comment.py
 
     # -------------------------------------
     # Return the proper exit status
